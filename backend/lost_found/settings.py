@@ -58,25 +58,25 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'lost_found.wsgi.application'
 
-# MongoDB Cluster Configuration (Temporarily Disabled)
-# import mongoengine
-# from urllib.parse import quote_plus
-# 
-# username = quote_plus("25015946d")
-# password = quote_plus("aA386696135")
-# 
-# MONGODB_CONNECTION_STRING = f'mongodb+srv://{username}:{password}@cluster0.zjg38gj.mongodb.net/lost_found_db?retryWrites=true&w=majority'
-# 
-# try:
-#     mongoengine.connect(
-#         host=MONGODB_CONNECTION_STRING,
-#         alias='default'
-#     )
-#     print("✅ Connected to MongoDB Atlas successfully!")
-# except Exception as e:
-#     print(f"❌ MongoDB connection failed: {e}")
-#     # Fallback to SQLite for development
-#     pass
+# MongoDB Cluster Configuration
+import mongoengine
+from urllib.parse import quote_plus
+
+username = quote_plus("25015946d")
+password = quote_plus("aA386696135")
+
+MONGODB_CONNECTION_STRING = f'mongodb+srv://{username}:{password}@cluster0.zjg38gj.mongodb.net/lost_found_db?retryWrites=true&w=majority'
+
+try:
+    mongoengine.connect(
+        host=MONGODB_CONNECTION_STRING,
+        alias='default'
+    )
+    print("✅ Connected to MongoDB Atlas successfully!")
+except Exception as e:
+    print(f"❌ MongoDB connection failed: {e}")
+    # Fallback to SQLite for development
+    pass
 
 # Keep SQLite as fallback for Django auth system
 DATABASES = {
