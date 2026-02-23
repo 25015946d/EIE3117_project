@@ -4,6 +4,7 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response as DRFResponse
 from datetime import datetime, date
+from django.http import HttpResponse, Http404
 
 from .models import Notice, Response
 from .serializers import NoticeListSerializer, NoticeDetailSerializer, ResponseSerializer
@@ -61,9 +62,7 @@ def respond_to_notice(request, pk):
     if notice.owner_id == request.user.id:
         return DRFResponse({'error': 'You cannot respond to your own notice.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    if Response.objects.filter(notice=notice, responder_id=request.user.id).count() > 0:
-        return DRFResponse({'error': 'You have already responded to this notice.'}, status=status.HTTP_400_BAD_REQUEST)
-
+    # Remove the one-response limit - users can respond multiple times
     data = request.data.copy()
 
     serializer = ResponseSerializer(data=data)
@@ -91,3 +90,55 @@ def complete_notice(request, pk):
     notice.updated_at = datetime.now()
     notice.save()
     return DRFResponse(NoticeDetailSerializer(notice, context={'request': request}).data)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_notice(request, pk):
+    """Delete a notice (only the owner can delete their own notice)"""
+    try:
+        notice = Notice.objects.get(pk=pk)
+    except Notice.DoesNotExist:
+        return DRFResponse({'error': 'Notice not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if notice.owner_id != request.user.id:
+        return DRFResponse({'error': 'Only the owner can delete this notice.'}, status=status.HTTP_403_FORBIDDEN)
+
+    # Delete the notice and all associated responses
+    from .models import Response
+    Response.objects(notice=notice).delete()
+    notice.delete()
+    
+    return DRFResponse({'message': 'Notice deleted successfully.'}, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def serve_image(request, grid_id):
+    """Serve images stored in GridFS"""
+    try:
+        from mongoengine import DoesNotExist
+        from .models import Notice
+        from bson import ObjectId
+        
+        # Convert grid_id to ObjectId
+        try:
+            grid_obj_id = ObjectId(grid_id)
+        except:
+            raise Http404("Invalid image ID")
+        
+        # Find all notices and check their images manually
+        for notice in Notice.objects.all():
+            if (notice.image and 
+                hasattr(notice.image, 'grid_id') and 
+                str(notice.image.grid_id) == grid_id):
+                
+                # Get the image data from GridFS
+                image_data = notice.image.read()
+                content_type = getattr(notice.image, 'content_type', 'image/jpeg')
+                
+                return HttpResponse(image_data, content_type=content_type)
+        
+        raise Http404("Image not found")
+    except Exception as e:
+        raise Http404("Image not found")

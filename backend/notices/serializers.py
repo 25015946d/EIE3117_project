@@ -34,14 +34,15 @@ class NoticeListSerializer(mongo_serializers.DocumentSerializer):
     responses_count = serializers.SerializerMethodField()
     owner_nickname = serializers.SerializerMethodField()
     owner_email = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
 
     class Meta:
         model = Notice
         fields = [
-            'id', 'owner_nickname', 'owner_email', 'title', 'type', 'date', 'venue', 'contact',
+            'id', 'owner_id', 'owner_nickname', 'owner_email', 'title', 'type', 'date', 'venue', 'contact',
             'description', 'image', 'status', 'responses_count', 'created_at',
         ]
-        read_only_fields = ['id', 'status', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'owner_id', 'status', 'created_at', 'updated_at']
 
     def get_responses_count(self, obj):
         return Response.objects(notice=obj).count()
@@ -53,6 +54,14 @@ class NoticeListSerializer(mongo_serializers.DocumentSerializer):
     def get_owner_email(self, obj):
         user = obj.owner
         return user.email if user else 'Unknown'
+
+    def get_image(self, obj):
+        if obj.image and hasattr(obj.image, 'grid_id'):
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(f'/notices/image/{obj.image.grid_id}/')
+            return f'/notices/image/{obj.image.grid_id}/'
+        return None
 
     def create(self, validated_data):
         # Add required fields for MongoDB
@@ -68,16 +77,17 @@ class NoticeDetailSerializer(mongo_serializers.DocumentSerializer):
     responses_count = serializers.SerializerMethodField()
     owner_nickname = serializers.SerializerMethodField()
     owner_email = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
 
     class Meta:
         model = Notice
         fields = [
-            'id', 'owner_nickname', 'owner_email',
+            'id', 'owner_id', 'owner_nickname', 'owner_email',
             'title', 'type', 'date', 'venue', 'contact',
             'description', 'image', 'status',
             'responses', 'responses_count', 'created_at',
         ]
-        read_only_fields = ['id', 'status', 'created_at']
+        read_only_fields = ['id', 'owner_id', 'status', 'created_at']
 
     def get_responses(self, obj):
         responses = Response.objects(notice=obj)
@@ -93,3 +103,11 @@ class NoticeDetailSerializer(mongo_serializers.DocumentSerializer):
     def get_owner_email(self, obj):
         user = obj.owner
         return user.email if user else 'Unknown'
+
+    def get_image(self, obj):
+        if obj.image and hasattr(obj.image, 'grid_id'):
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(f'/notices/image/{obj.image.grid_id}/')
+            return f'/notices/image/{obj.image.grid_id}/'
+        return None

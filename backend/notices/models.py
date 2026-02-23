@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.db import models
-from mongoengine import Document, StringField, DateTimeField, DateField, ReferenceField, CASCADE, IntField
+from mongoengine import Document, StringField, DateTimeField, DateField, ReferenceField, CASCADE, IntField, ImageField
 
 
 class Notice(Document):
@@ -20,7 +20,7 @@ class Notice(Document):
     venue = StringField(required=True, max_length=255)
     contact = StringField(required=True, max_length=255)
     description = StringField(required=True)
-    image = StringField(max_length=255, default='')
+    image = ImageField()
     status = StringField(choices=STATUS_CHOICES, default='active', max_length=20)
     created_at = DateTimeField(required=True)
     updated_at = DateTimeField(required=True)

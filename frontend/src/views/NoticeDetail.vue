@@ -16,6 +16,17 @@
       <p><strong>Owner:</strong> {{ notice.owner_nickname }} ({{ notice.owner_email }})</p>
       <p><strong>Status:</strong> {{ notice.status }}</p>
 
+      <div v-if="isOwner" class="notice-actions">
+        <button v-if="canCompleteNotice" class="btn btn-success" @click="completeNotice" :disabled="completeLoading">
+          {{ completeLoading ? 'Completing...' : 'Mark as Complete' }}
+        </button>
+        <button class="btn btn-danger" @click="deleteNotice" :disabled="deleteLoading">
+          {{ deleteLoading ? 'Deleting...' : 'Delete Notice' }}
+        </button>
+        <div v-if="completeError" class="alert alert-error">{{ completeError }}</div>
+        <div v-if="deleteError" class="alert alert-error">{{ deleteError }}</div>
+      </div>
+
       <div v-if="notice.image" class="notice-image">
         <img :src="notice.image" :alt="notice.title" />
       </div>
@@ -55,19 +66,27 @@ export default {
       error: null,
       responseMessage: '',
       respondLoading: false,
-      respondError: null
+      respondError: null,
+      deleteLoading: false,
+      deleteError: null,
+      completeLoading: false,
+      completeError: null
     }
   },
   computed: {
     ...mapGetters(['isAuthenticated', 'currentUser']),
+    isOwner() {
+      return this.isAuthenticated && this.notice && this.currentUser && this.notice.owner_id === this.currentUser.id
+    },
     canRespond() {
       if (!this.isAuthenticated || !this.notice || !this.currentUser) return false
       if (this.notice.status !== 'active') return false
-      if (this.notice.owner === this.currentUser.id) return false
-      const hasResponded = (this.notice.responses || []).some(
-        (res) => res.responder === this.currentUser.id
-      )
-      return !hasResponded
+      if (this.notice.owner_id === this.currentUser.id) return false
+      // Remove the one-response limit - users can respond multiple times
+      return true
+    },
+    canCompleteNotice() {
+      return this.isOwner && this.notice.status === 'active'
     }
   },
   methods: {
@@ -97,6 +116,40 @@ export default {
         this.respondError = payload.error || payload.message || 'Failed to send response.'
       } finally {
         this.respondLoading = false
+      }
+    },
+    async completeNotice() {
+      if (!confirm('Are you sure you want to mark this notice as complete? This means you have found your item.')) {
+        return
+      }
+      
+      this.completeLoading = true
+      this.completeError = null
+      try {
+        await axios.post(`/notices/${this.$route.params.id}/complete/`)
+        await this.fetchDetail() // Refresh the notice data
+      } catch (error) {
+        const payload = error.response?.data || {}
+        this.completeError = payload.error || payload.message || 'Failed to complete notice.'
+      } finally {
+        this.completeLoading = false
+      }
+    },
+    async deleteNotice() {
+      if (!confirm('Are you sure you want to delete this notice? This action cannot be undone.')) {
+        return
+      }
+      
+      this.deleteLoading = true
+      this.deleteError = null
+      try {
+        await axios.delete(`/notices/${this.$route.params.id}/delete/`)
+        this.$router.push('/')
+      } catch (error) {
+        const payload = error.response?.data || {}
+        this.deleteError = payload.error || payload.message || 'Failed to delete notice.'
+      } finally {
+        this.deleteLoading = false
       }
     },
     formatDate(value) {
@@ -135,6 +188,27 @@ export default {
   margin: 1rem 0;
   max-width: 100%;
   border-radius: 8px;
+}
+.notice-actions {
+  margin: 1rem 0;
+}
+.notice-actions button {
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.btn-danger {
+  background: #dc3545;
+  color: white;
+}
+.btn-danger:hover {
+  background: #c82333;
+}
+.btn-success {
+  background: #28a745;
+  color: white;
+}
+.btn-success:hover {
+  background: #218838;
 }
 .response-box {
   margin-top: 1.5rem;
