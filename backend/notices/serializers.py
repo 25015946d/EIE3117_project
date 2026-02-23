@@ -14,11 +14,13 @@ class ResponseSerializer(serializers.ModelSerializer):
 
 class NoticeListSerializer(serializers.ModelSerializer):
     responses_count = serializers.IntegerField(source='responses.count', read_only=True)
+    owner_nickname = serializers.CharField(source='owner.nickname', read_only=True)
+    owner_email = serializers.CharField(source='owner.email', read_only=True)
 
     class Meta:
         model = Notice
         fields = [
-            'id', 'owner', 'title', 'type', 'date', 'venue', 'contact',
+            'id', 'owner', 'owner_nickname', 'owner_email', 'title', 'type', 'date', 'venue', 'contact',
             'description', 'image', 'status', 'responses_count', 'created_at',
         ]
         read_only_fields = ['id', 'owner', 'status', 'created_at']

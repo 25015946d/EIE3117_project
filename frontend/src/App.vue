@@ -3,9 +3,9 @@
     <header class="topbar">
       <h2 class="brand">Lost &amp; Found</h2>
       <nav class="nav">
-        <router-link to="/">Home</router-link>
-        <router-link to="/create">Create</router-link>
+        <router-link to="/">All Notices</router-link>
         <router-link to="/my-notices">My Notices</router-link>
+        <router-link to="/create">Create</router-link>
         <router-link to="/profile">Profile</router-link>
         <router-link v-if="!isAuthenticated" to="/login">Login</router-link>
         <button v-else class="linklike" @click="logoutAndGo">Logout</button>

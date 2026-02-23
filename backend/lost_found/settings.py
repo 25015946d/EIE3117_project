@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
+    'mongoengine',
     'accounts',
     'notices',
 ]
@@ -57,27 +58,33 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'lost_found.wsgi.application'
 
-if os.getenv('MYSQL_PASSWORD'):
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': os.getenv('MYSQL_DATABASE', 'lost_found_db'),
-            'USER': os.getenv('MYSQL_USER', 'root'),
-            'PASSWORD': os.getenv('MYSQL_PASSWORD', ''),
-            'HOST': os.getenv('MYSQL_HOST', '127.0.0.1'),
-            'PORT': os.getenv('MYSQL_PORT', '3306'),
-            'OPTIONS': {
-                'charset': 'utf8mb4',
-            },
-        }
+# MongoDB Cluster Configuration (Temporarily Disabled)
+# import mongoengine
+# from urllib.parse import quote_plus
+# 
+# username = quote_plus("25015946d")
+# password = quote_plus("aA386696135")
+# 
+# MONGODB_CONNECTION_STRING = f'mongodb+srv://{username}:{password}@cluster0.zjg38gj.mongodb.net/lost_found_db?retryWrites=true&w=majority'
+# 
+# try:
+#     mongoengine.connect(
+#         host=MONGODB_CONNECTION_STRING,
+#         alias='default'
+#     )
+#     print("✅ Connected to MongoDB Atlas successfully!")
+# except Exception as e:
+#     print(f"❌ MongoDB connection failed: {e}")
+#     # Fallback to SQLite for development
+#     pass
+
+# Keep SQLite as fallback for Django auth system
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+}
 
 AUTH_USER_MODEL = 'accounts.User'
 
