@@ -12,8 +12,8 @@ class ResponseSerializer(mongo_serializers.DocumentSerializer):
 
     class Meta:
         model = Response
-        fields = ['id', 'responder', 'responder_nickname', 'responder_email', 'message', 'created_at']
-        read_only_fields = ['id', 'responder', 'responder_nickname', 'responder_email', 'created_at']
+        fields = ['id', 'responder_id', 'responder_nickname', 'responder_email', 'message', 'created_at']
+        read_only_fields = ['id', 'responder_id', 'responder_nickname', 'responder_email', 'created_at']
 
     def get_responder_nickname(self, obj):
         user = obj.responder
@@ -22,6 +22,12 @@ class ResponseSerializer(mongo_serializers.DocumentSerializer):
     def get_responder_email(self, obj):
         user = obj.responder
         return user.email if user else 'Unknown'
+
+    def create(self, validated_data):
+        # Add required fields for MongoDB
+        from datetime import datetime
+        validated_data['created_at'] = datetime.now()
+        return super().create(validated_data)
 
 
 class NoticeListSerializer(mongo_serializers.DocumentSerializer):
@@ -32,10 +38,10 @@ class NoticeListSerializer(mongo_serializers.DocumentSerializer):
     class Meta:
         model = Notice
         fields = [
-            'id', 'owner', 'owner_nickname', 'owner_email', 'title', 'type', 'date', 'venue', 'contact',
+            'id', 'owner_nickname', 'owner_email', 'title', 'type', 'date', 'venue', 'contact',
             'description', 'image', 'status', 'responses_count', 'created_at',
         ]
-        read_only_fields = ['id', 'owner', 'status', 'created_at']
+        read_only_fields = ['id', 'status', 'created_at', 'updated_at']
 
     def get_responses_count(self, obj):
         return Response.objects(notice=obj).count()
@@ -48,9 +54,17 @@ class NoticeListSerializer(mongo_serializers.DocumentSerializer):
         user = obj.owner
         return user.email if user else 'Unknown'
 
+    def create(self, validated_data):
+        # Add required fields for MongoDB
+        from datetime import datetime
+        validated_data['owner_id'] = self.context['request'].user.id
+        validated_data['created_at'] = datetime.now()
+        validated_data['updated_at'] = datetime.now()
+        return super().create(validated_data)
+
 
 class NoticeDetailSerializer(mongo_serializers.DocumentSerializer):
-    responses = ResponseSerializer(many=True, read_only=True)
+    responses = serializers.SerializerMethodField()
     responses_count = serializers.SerializerMethodField()
     owner_nickname = serializers.SerializerMethodField()
     owner_email = serializers.SerializerMethodField()
@@ -58,12 +72,16 @@ class NoticeDetailSerializer(mongo_serializers.DocumentSerializer):
     class Meta:
         model = Notice
         fields = [
-            'id', 'owner', 'owner_nickname', 'owner_email',
+            'id', 'owner_nickname', 'owner_email',
             'title', 'type', 'date', 'venue', 'contact',
             'description', 'image', 'status',
             'responses', 'responses_count', 'created_at',
         ]
-        read_only_fields = ['id', 'owner', 'status', 'created_at']
+        read_only_fields = ['id', 'status', 'created_at']
+
+    def get_responses(self, obj):
+        responses = Response.objects(notice=obj)
+        return ResponseSerializer(responses, many=True).data
 
     def get_responses_count(self, obj):
         return Response.objects(notice=obj).count()

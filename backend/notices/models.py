@@ -37,7 +37,9 @@ class Notice(Document):
     def owner(self):
         """Get Django User object from owner_id"""
         try:
-            return settings.AUTH_USER_MODEL.objects.get(id=self.owner_id)
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            return User.objects.get(id=self.owner_id)
         except:
             return None
 
@@ -60,6 +62,8 @@ class Response(Document):
     def responder(self):
         """Get Django User object from responder_id"""
         try:
-            return settings.AUTH_USER_MODEL.objects.get(id=self.responder_id)
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            return User.objects.get(id=self.responder_id)
         except:
             return None

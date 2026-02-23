@@ -21,12 +21,7 @@ def notice_list_create(request):
     if not request.user or not request.user.is_authenticated:
         return DRFResponse({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
 
-    data = request.data.copy()
-    data['owner_id'] = request.user.id
-    data['created_at'] = datetime.now()
-    data['updated_at'] = datetime.now()
-
-    serializer = NoticeListSerializer(data=data, context={'request': request})
+    serializer = NoticeListSerializer(data=request.data, context={'request': request})
     if serializer.is_valid():
         serializer.save()
         return DRFResponse(serializer.data, status=status.HTTP_201_CREATED)
@@ -66,16 +61,14 @@ def respond_to_notice(request, pk):
     if notice.owner_id == request.user.id:
         return DRFResponse({'error': 'You cannot respond to your own notice.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    if Response.objects.filter(notice=notice, responder_id=request.user.id).exists():
+    if Response.objects.filter(notice=notice, responder_id=request.user.id).count() > 0:
         return DRFResponse({'error': 'You have already responded to this notice.'}, status=status.HTTP_400_BAD_REQUEST)
 
     data = request.data.copy()
-    data['responder_id'] = request.user.id
-    data['created_at'] = datetime.now()
 
     serializer = ResponseSerializer(data=data)
     if serializer.is_valid():
-        serializer.save(notice=notice)
+        serializer.save(notice=notice, responder_id=request.user.id)
         return DRFResponse(serializer.data, status=status.HTTP_201_CREATED)
     return DRFResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
