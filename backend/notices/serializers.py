@@ -34,13 +34,14 @@ class NoticeListSerializer(mongo_serializers.DocumentSerializer):
     responses_count = serializers.SerializerMethodField()
     owner_nickname = serializers.SerializerMethodField()
     owner_email = serializers.SerializerMethodField()
-    image = serializers.SerializerMethodField()
+    image = serializers.ImageField(required=False, allow_null=True, write_only=True)
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Notice
         fields = [
             'id', 'owner_id', 'owner_nickname', 'owner_email', 'title', 'type', 'date', 'venue', 'contact',
-            'description', 'image', 'status', 'responses_count', 'created_at',
+            'description', 'image', 'image_url', 'status', 'responses_count', 'created_at',
         ]
         read_only_fields = ['id', 'owner_id', 'status', 'created_at', 'updated_at']
 
@@ -55,33 +56,24 @@ class NoticeListSerializer(mongo_serializers.DocumentSerializer):
         user = obj.owner
         return user.email if user else 'Unknown'
 
-    def get_image(self, obj):
-        print(f"NoticeListSerializer get_image called for notice {obj.id}")
-        print(f"obj.image: {obj.image}")
-        if obj.image:
-            print(f"obj.image type: {type(obj.image)}")
-            if hasattr(obj.image, 'grid_id'):
-                print(f"obj.image.grid_id: {obj.image.grid_id}")
-                request = self.context.get('request')
-                if request:
-                    url = request.build_absolute_uri(f'/notices/image/{obj.image.grid_id}/')
-                    print(f"Generated image URL: {url}")
-                    return url
-                url = f'/notices/image/{obj.image.grid_id}/'
-                print(f"Generated image URL (no request): {url}")
-                return url
-        print("No image found, returning None")
+    def get_image_url(self, obj):
+        """Generate image URL for frontend"""
+        if obj.image and hasattr(obj.image, 'grid_id'):
+            # Return relative URL to work with proxy
+            return f'/notices/image/{obj.image.grid_id}/'
         return None
 
     def create(self, validated_data):
         # Add required fields for MongoDB
         from datetime import datetime
         
-        print(f"Serializer create called with validated_data: {validated_data}")
+        print(f"DEBUG: Serializer create called with validated_data keys: {list(validated_data.keys())}")
         
         # Handle image upload explicitly
         image_file = validated_data.pop('image', None)
-        print(f"Extracted image_file: {image_file}")
+        print(f"DEBUG: Extracted image_file: {image_file}")
+        if image_file:
+            print(f"DEBUG: Image file type: {type(image_file)}")
         
         # Use MongoDB user_id instead of Django user.id
         current_user = getattr(self.context['request'], 'current_user', None)
@@ -95,27 +87,26 @@ class NoticeListSerializer(mongo_serializers.DocumentSerializer):
         
         # Create notice without image first
         notice = super().create(validated_data)
-        print(f"Created notice without image: {notice.id}")
+        print(f"DEBUG: Created notice: {notice.id}")
         
         # Handle image if provided
         if image_file:
-            print(f"Processing image file: {image_file}")
-            print(f"Image file name: {image_file.name}")
-            print(f"Image file content type: {image_file.content_type}")
-            print(f"Image file size: {image_file.size}")
-            
+            print(f"DEBUG: Processing image file...")
             try:
                 # Store image in GridFS
-                notice.image.put(image_file, content_type=image_file.content_type)
+                notice.image.put(image_file, content_type=getattr(image_file, 'content_type', 'image/jpeg'))
                 notice.save()
-                print(f"Image stored with grid_id: {notice.image.grid_id}")
-                print(f"Notice after image save: {notice.image}")
+                print(f"DEBUG: Image stored successfully")
+                if hasattr(notice.image, 'grid_id'):
+                    print(f"DEBUG: Grid ID: {notice.image.grid_id}")
             except Exception as e:
-                print(f"Error storing image: {e}")
-                # Continue without image
+                print(f"DEBUG: Error storing image: {e}")
+                import traceback
+                traceback.print_exc()
+                # Continue without image if storage fails
                 pass
         else:
-            print("No image file to process")
+            print("DEBUG: No image file to process")
         
         return notice
 
@@ -154,8 +145,6 @@ class NoticeDetailSerializer(mongo_serializers.DocumentSerializer):
 
     def get_image(self, obj):
         if obj.image and hasattr(obj.image, 'grid_id'):
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(f'/notices/image/{obj.image.grid_id}/')
+            # Return relative URL to work with proxy
             return f'/notices/image/{obj.image.grid_id}/'
         return None

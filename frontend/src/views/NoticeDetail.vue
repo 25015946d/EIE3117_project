@@ -28,7 +28,6 @@
       </div>
 
       <div v-if="notice.image" class="notice-image">
-        <p>Debug: Image URL = {{ notice.image }}</p>
         <img :src="notice.image" :alt="notice.title" @error="onImageError" @load="onImageLoad" />
       </div>
       <div v-else class="alert">

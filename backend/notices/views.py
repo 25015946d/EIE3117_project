@@ -32,30 +32,31 @@ def notice_list_create(request):
     except Exception:
         return DRFResponse({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
 
-    # Debug: Print request data
-    print(f"Request data: {request.data}")
-    print(f"Request FILES: {request.FILES}")
-    print(f"Request content type: {request.content_type}")
-    
     # Handle file upload - check both request.data and request.FILES
+    print(f"DEBUG: request.FILES keys: {list(request.FILES.keys())}")
+    print(f"DEBUG: request.data keys: {list(request.data.keys())}")
     if 'image' in request.FILES:
-        print("Image found in request.FILES")
-        request.data['image'] = request.FILES['image']
+        print("DEBUG: Image found in request.FILES")
+        # Make a copy of request.data and add the file
+        data = request.data.copy()
+        data['image'] = request.FILES['image']
+        print(f"DEBUG: Added image to data, image type: {type(data['image'])}")
     elif 'image' in request.data:
-        print("Image found in request.data")
+        print("DEBUG: Image found in request.data")
+        data = request.data
     else:
-        print("No image found in request")
+        print("DEBUG: No image found")
+        data = request.data
     
     # Add user context to serializer
     request.current_user = user
-    serializer = NoticeListSerializer(data=request.data, context={'request': request})
+    serializer = NoticeListSerializer(data=data, context={'request': request})
     if serializer.is_valid():
         notice = serializer.save()
-        print(f"Created notice: {notice}")
-        print(f"Notice image: {notice.image}")
-        return DRFResponse(serializer.data, status=status.HTTP_201_CREATED)
+        # Re-serialize to get the correct image URL
+        response_serializer = NoticeListSerializer(notice, context={'request': request})
+        return DRFResponse(response_serializer.data, status=status.HTTP_201_CREATED)
     else:
-        print(f"Serializer errors: {serializer.errors}")
         return DRFResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -195,34 +196,26 @@ def serve_image(request, grid_id):
         from .models import Notice
         from bson import ObjectId
         
-        print(f"Looking for image with grid_id: {grid_id}")
-        
         # Convert grid_id to ObjectId
         try:
             grid_obj_id = ObjectId(grid_id)
         except:
-            raise Http404("Invalid image ID")
+            return HttpResponse('Invalid image ID', status=404)
         
         # Find all notices and check their images manually
         notices = Notice.objects.all()
-        print(f"Total notices: {len(notices)}")
         
         for notice in notices:
-            if notice.image:
-                print(f"Notice {notice.id} has image: {notice.image}")
-                if hasattr(notice.image, 'grid_id'):
-                    print(f"Image grid_id: {notice.image.grid_id}")
-                    if str(notice.image.grid_id) == grid_id:
-                        print(f"Found matching image for notice {notice.id}")
-                        
-                        # Get the image data from GridFS
-                        image_data = notice.image.read()
-                        content_type = getattr(notice.image, 'content_type', 'image/jpeg')
-                        
-                        return HttpResponse(image_data, content_type=content_type)
+            if notice.image and hasattr(notice.image, 'grid_id'):
+                if str(notice.image.grid_id) == grid_id:
+                    # Get the image data from GridFS
+                    image_data = notice.image.read()
+                    content_type = getattr(notice.image, 'content_type', 'image/jpeg')
+                    
+                    response = HttpResponse(image_data, content_type=content_type)
+                    response['Content-Disposition'] = f'inline; filename="notice_{notice.id}_image.jpg"'
+                    return response
         
-        print("No matching image found")
-        raise Http404("Image not found")
+        return HttpResponse('Image not found', status=404)
     except Exception as e:
-        print(f"Error serving image: {e}")
-        raise Http404("Image not found")
+        return HttpResponse(f'Error serving image: {str(e)}', status=500)

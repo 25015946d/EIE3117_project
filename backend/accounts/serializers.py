@@ -56,9 +56,7 @@ class UserSerializer(serializers.Serializer):
     
     def get_image_url(self, instance):
         if instance.profile_image:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(f'/auth/profile/image/{instance.user_id}/')
+            # Return relative URL to work with proxy
             return f'/auth/profile/image/{instance.user_id}/'
         return None
 

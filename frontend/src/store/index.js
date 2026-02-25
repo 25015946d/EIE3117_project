@@ -77,6 +77,12 @@ const store = createStore({
       const res = await axios.get('/auth/profile/detail/')
       return res.data
     },
+    async refreshProfile({ commit }) {
+      const res = await axios.get('/auth/profile/')
+      const user = res.data?.user || res.data
+      commit('setCurrentUser', user)
+      return res.data
+    },
     logout({ commit }) {
       commit('clearAuth')
     }
