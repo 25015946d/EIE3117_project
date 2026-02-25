@@ -1,7 +1,7 @@
 import { createStore } from 'vuex'
 import axios from 'axios'
 
-axios.defaults.baseURL = process.env.VUE_APP_API_BASE_URL || ''
+axios.defaults.baseURL = process.env.VUE_APP_API_BASE_URL || '/'
 
 const TOKEN_KEY = 'auth_token'
 const USER_KEY = 'current_user'
