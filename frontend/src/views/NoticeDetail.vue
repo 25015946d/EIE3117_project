@@ -17,7 +17,7 @@
       <p><strong>Status:</strong> {{ notice.status }}</p>
 
       <div v-if="isOwner" class="notice-actions">
-        <button v-if="canCompleteNotice" class="btn btn-success" @click="completeNotice" :disabled="completeLoading">
+        <button v-if="notice.status === 'active'" class="btn btn-success" @click="completeNotice" :disabled="completeLoading">
           {{ completeLoading ? 'Completing...' : 'Mark as Complete' }}
         </button>
         <button class="btn btn-danger" @click="deleteNotice" :disabled="deleteLoading">

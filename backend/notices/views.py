@@ -92,26 +92,6 @@ def complete_notice(request, pk):
     return DRFResponse(NoticeDetailSerializer(notice, context={'request': request}).data)
 
 
-@api_view(['DELETE'])
-@permission_classes([IsAuthenticated])
-def delete_notice(request, pk):
-    """Delete a notice (only the owner can delete their own notice)"""
-    try:
-        notice = Notice.objects.get(pk=pk)
-    except Notice.DoesNotExist:
-        return DRFResponse({'error': 'Notice not found.'}, status=status.HTTP_404_NOT_FOUND)
-
-    if notice.owner_id != request.user.id:
-        return DRFResponse({'error': 'Only the owner can delete this notice.'}, status=status.HTTP_403_FORBIDDEN)
-
-    # Delete the notice and all associated responses
-    from .models import Response
-    Response.objects(notice=notice).delete()
-    notice.delete()
-    
-    return DRFResponse({'message': 'Notice deleted successfully.'}, status=status.HTTP_200_OK)
-
-
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def serve_image(request, grid_id):
