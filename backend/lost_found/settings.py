@@ -36,6 +36,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'accounts.middleware.MongoDBAuthMiddleware',
 ]
 
 ROOT_URLCONF = 'lost_found.urls'
@@ -75,8 +76,9 @@ try:
     print("✅ Connected to MongoDB Atlas successfully!")
 except Exception as e:
     print(f"❌ MongoDB connection failed: {e}")
-    # Fallback to SQLite for development
-    pass
+    # Exit if MongoDB connection fails since we rely on it
+    import sys
+    sys.exit(1)
 
 # Keep SQLite as fallback for Django auth system
 DATABASES = {
@@ -86,8 +88,6 @@ DATABASES = {
     }
 }
 
-AUTH_USER_MODEL = 'accounts.User'
-
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -96,7 +96,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 AUTHENTICATION_BACKENDS = [
-    'accounts.backends.EmailBackend',
+    'accounts.auth_backends.MongoDBAuthBackend',
 ]
 
 LANGUAGE_CODE = 'en-us'
@@ -113,6 +113,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS
 CORS_ALLOW_ALL_ORIGINS = True
+
+# Authentication
+AUTHENTICATION_BACKENDS = [
+    'accounts.auth_backends.MongoDBAuthBackend',
+]
 
 # DRF
 REST_FRAMEWORK = {

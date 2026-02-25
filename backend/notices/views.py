@@ -19,9 +19,21 @@ def notice_list_create(request):
         return DRFResponse(serializer.data)
 
     # POST – must be authenticated
-    if not request.user or not request.user.is_authenticated:
+    auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+    if not auth_header.startswith('Bearer '):
+        return DRFResponse({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+    
+    token = auth_header[7:]
+    try:
+        from accounts.models import User
+        user = User.objects(auth_token=token).first()
+        if not user:
+            return DRFResponse({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+    except Exception:
         return DRFResponse({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
 
+    # Add user context to serializer
+    request.current_user = user
     serializer = NoticeListSerializer(data=request.data, context={'request': request})
     if serializer.is_valid():
         serializer.save()
@@ -41,11 +53,23 @@ def notice_detail(request, pk):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])  # Temporarily allow any for testing
 def my_notices(request):
-    notices = Notice.objects.filter(owner_id=request.user.id)
-    serializer = NoticeListSerializer(notices, many=True, context={'request': request})
-    return DRFResponse(serializer.data)
+    # Get user from token (similar to profile view)
+    auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+    if auth_header.startswith('Bearer '):
+        token = auth_header[7:]
+        try:
+            from accounts.models import User
+            user = User.objects(auth_token=token).first()
+            if user:
+                notices = Notice.objects.filter(owner_id=user.user_id)
+                serializer = NoticeListSerializer(notices, many=True, context={'request': request})
+                return DRFResponse(serializer.data)
+        except Exception:
+            pass
+    
+    return DRFResponse({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 @api_view(['POST'])

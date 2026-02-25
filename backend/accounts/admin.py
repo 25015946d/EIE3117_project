@@ -1,10 +1,4 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User
 
-
-@admin.register(User)
-class UserAdmin(BaseUserAdmin):
-    list_display = ('email', 'username', 'nickname', 'is_staff')
-    search_fields = ('email', 'username', 'nickname')
-    ordering = ('email',)
+# MongoDB User model is not compatible with Django admin
+# Admin is managed through the API and frontend

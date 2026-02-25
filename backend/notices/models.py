@@ -13,7 +13,7 @@ class Notice(Document):
         ('completed', 'Completed'),
     ]
 
-    owner_id = IntField(required=True)  # Reference to Django User ID
+    owner_id = StringField(required=True)  # Reference to MongoDB User user_id
     title = StringField(required=True, max_length=255)
     type = StringField(required=True, choices=TYPE_CHOICES, max_length=10)
     date = DateField(required=True)
@@ -35,18 +35,17 @@ class Notice(Document):
 
     @property
     def owner(self):
-        """Get Django User object from owner_id"""
+        """Get MongoDB User object from owner_id"""
         try:
-            from django.contrib.auth import get_user_model
-            User = get_user_model()
-            return User.objects.get(id=self.owner_id)
+            from accounts.models import User
+            return User.objects.get(user_id=str(self.owner_id))
         except:
             return None
 
 
 class Response(Document):
     notice = ReferenceField(Notice, reverse_delete_schema=CASCADE)
-    responder_id = IntField(required=True)  # Reference to Django User ID
+    responder_id = StringField(required=True)  # Reference to MongoDB User user_id
     message = StringField(required=True)
     created_at = DateTimeField(required=True)
 
@@ -60,10 +59,9 @@ class Response(Document):
 
     @property
     def responder(self):
-        """Get Django User object from responder_id"""
+        """Get MongoDB User object from responder_id"""
         try:
-            from django.contrib.auth import get_user_model
-            User = get_user_model()
-            return User.objects.get(id=self.responder_id)
+            from accounts.models import User
+            return User.objects.get(user_id=self.responder_id)
         except:
             return None

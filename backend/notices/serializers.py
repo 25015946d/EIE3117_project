@@ -66,7 +66,13 @@ class NoticeListSerializer(mongo_serializers.DocumentSerializer):
     def create(self, validated_data):
         # Add required fields for MongoDB
         from datetime import datetime
-        validated_data['owner_id'] = self.context['request'].user.id
+        # Use MongoDB user_id instead of Django user.id
+        current_user = getattr(self.context['request'], 'current_user', None)
+        if current_user:
+            validated_data['owner_id'] = current_user.user_id
+        else:
+            # Fallback for testing
+            validated_data['owner_id'] = 'test_user_id'
         validated_data['created_at'] = datetime.now()
         validated_data['updated_at'] = datetime.now()
         return super().create(validated_data)

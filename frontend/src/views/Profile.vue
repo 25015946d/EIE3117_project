@@ -2,7 +2,12 @@
   <div>
     <h1>My Profile</h1>
 
-    <div class="card" v-if="currentUser">
+    <div v-if="!isAuthenticated" class="card">
+      <p>Please login first</p>
+      <router-link to="/login" class="btn">Go to Login</router-link>
+    </div>
+
+    <div class="card" v-else-if="currentUser">
       <div v-if="success" class="alert alert-success">{{ success }}</div>
       <div v-if="error" class="alert alert-error">{{ error }}</div>
 
@@ -45,7 +50,7 @@ export default {
     }
   },
   computed: {
-    ...mapGetters(['currentUser'])
+    ...mapGetters(['currentUser', 'isAuthenticated'])
   },
   created() {
     if (this.currentUser) this.form.nickname = this.currentUser.nickname || ''

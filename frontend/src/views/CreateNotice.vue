@@ -2,7 +2,12 @@
   <div>
     <h1>Create Notice</h1>
 
-    <div class="card">
+    <div v-if="!isAuthenticated" class="card">
+      <p>Please login first</p>
+      <router-link to="/login" class="btn">Go to Login</router-link>
+    </div>
+
+    <div class="card" v-else>
       <div v-if="error" class="alert alert-error">{{ error }}</div>
       <form @submit.prevent="submitNotice">
         <div class="form-group">
@@ -51,6 +56,7 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex'
 import axios from 'axios'
 
 export default {
@@ -69,6 +75,9 @@ export default {
       loading: false,
       error: null
     }
+  },
+  computed: {
+    ...mapGetters(['isAuthenticated'])
   },
   methods: {
     onFileChange(event) {
