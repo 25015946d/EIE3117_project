@@ -7,7 +7,7 @@
     <div v-else>
       <div v-if="notices.length === 0" class="alert">No notices found.</div>
 
-      <div v-for="notice in notices" :key="notice.id" class="card notice-card" :class="notice.type">
+      <div v-for="notice in notices" :key="notice.id" class="card notice-card" :class="[notice.type, notice.status]">
         <div class="row">
           <div>
             <h3>{{ notice.title }}</h3>
@@ -95,5 +95,9 @@ export default {
 }
 .notice-card.found {
   border-left: 4px solid var(--primary);
+}
+.notice-card.completed {
+  border-left: 4px solid #28a745;
+  background-color: rgba(40, 167, 69, 0.05);
 }
 </style>

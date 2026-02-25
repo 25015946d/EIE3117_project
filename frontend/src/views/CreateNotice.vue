@@ -46,7 +46,7 @@
 
         <div class="form-group">
           <label class="form-label" for="image">Image (optional)</label>
-          <input id="image" type="file" class="form-control" accept="image/*" @change="onFileChange" />
+          <input id="image" name="image" type="file" class="form-control" accept="image/*" @change="onFileChange" />
         </div>
 
         <button class="btn" :disabled="loading">{{ loading ? 'Submitting...' : 'Create Notice' }}</button>

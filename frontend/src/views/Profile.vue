@@ -7,7 +7,12 @@
       <router-link to="/login" class="btn">Go to Login</router-link>
     </div>
 
-    <div class="card" v-else-if="currentUser">
+    <div v-else-if="currentUser">
+      <div class="greeting-card">
+        <h2>Welcome back, {{ currentUser.nickname || currentUser.username }}!</h2>
+      </div>
+
+      <div class="card">
       <div v-if="success" class="alert alert-success">{{ success }}</div>
       <div v-if="error" class="alert alert-error">{{ error }}</div>
 
@@ -32,6 +37,7 @@
 
         <button class="btn" :disabled="loading">{{ loading ? 'Saving...' : 'Save Profile' }}</button>
       </form>
+      </div>
     </div>
   </div>
 </template>
@@ -83,6 +89,19 @@ export default {
 </script>
 
 <style scoped>
+.greeting-card {
+  color: var(--text);
+  padding: 1rem 0;
+  margin-bottom: 1rem;
+  text-align: left;
+}
+
+.greeting-card h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
 .profile-header {
   display: flex;
   align-items: center;

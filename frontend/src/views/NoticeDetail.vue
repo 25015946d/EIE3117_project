@@ -28,7 +28,11 @@
       </div>
 
       <div v-if="notice.image" class="notice-image">
-        <img :src="notice.image" :alt="notice.title" />
+        <p>Debug: Image URL = {{ notice.image }}</p>
+        <img :src="notice.image" :alt="notice.title" @error="onImageError" @load="onImageLoad" />
+      </div>
+      <div v-else class="alert">
+        No image available for this notice.
       </div>
 
       <div v-if="canRespond" class="response-box">
@@ -81,8 +85,7 @@ export default {
     canRespond() {
       if (!this.isAuthenticated || !this.notice || !this.currentUser) return false
       if (this.notice.status !== 'active') return false
-      if (this.notice.owner_id === this.currentUser.id) return false
-      // Remove the one-response limit - users can respond multiple times
+      // Allow all authenticated users to respond, including the notice owner
       return true
     },
     canCompleteNotice() {
@@ -90,6 +93,12 @@ export default {
     }
   },
   methods: {
+    onImageError() {
+      console.error('Failed to load image:', this.notice.image)
+    },
+    onImageLoad() {
+      console.log('Image loaded successfully:', this.notice.image)
+    },
     async fetchDetail() {
       this.loading = true
       this.error = null
