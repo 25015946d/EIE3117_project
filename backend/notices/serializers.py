@@ -145,6 +145,8 @@ class NoticeDetailSerializer(mongo_serializers.DocumentSerializer):
 
     def get_image(self, obj):
         if obj.image and hasattr(obj.image, 'grid_id'):
-            # Return relative URL to work with proxy
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(f'/notices/image/{obj.image.grid_id}/')
             return f'/notices/image/{obj.image.grid_id}/'
         return None
