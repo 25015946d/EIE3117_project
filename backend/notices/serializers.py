@@ -9,17 +9,17 @@ import os
 User = get_user_model()
 
 
-def process_image(image_file, max_size_mb=2, max_width=1200, max_height=1200):
+def process_image(image_file, max_size_mb=5, max_width=1200, max_height=1200, max_compressed_mb=2):
     """
     Process uploaded image:
-    - Validate file size
-    - Resize if too large
-    - Compress to reduce file size
+    - Allow larger initial files (up to 5MB)
+    - Resize and compress to reduce file size
+    - Validate final compressed size (max 2MB)
     """
-    # Check file size (convert MB to bytes)
-    max_size_bytes = max_size_mb * 1024 * 1024
+    # Check initial file size (allow larger files for processing)
+    max_initial_size = max_size_mb * 1024 * 1024
     
-    if image_file.size > max_size_bytes:
+    if image_file.size > max_initial_size:
         raise serializers.ValidationError(f"Image size must be less than {max_size_mb}MB")
     
     try:
@@ -49,6 +49,20 @@ def process_image(image_file, max_size_mb=2, max_width=1200, max_height=1200):
             img.save(output, format='JPEG', quality=85, optimize=True)
         
         output.seek(0)
+        
+        # Check compressed file size
+        compressed_size = output.tell()
+        max_compressed_bytes = max_compressed_mb * 1024 * 1024
+        
+        if compressed_size > max_compressed_bytes:
+            # Try more aggressive compression
+            output = BytesIO()
+            img.save(output, format='JPEG', quality=70, optimize=True)
+            output.seek(0)
+            compressed_size = output.tell()
+            
+            if compressed_size > max_compressed_bytes:
+                raise serializers.ValidationError(f"Image too large after compression. Maximum allowed size is {max_compressed_mb}MB")
         
         # Create new InMemoryUploadedFile
         new_filename = os.path.splitext(image_file.name)[0] + '.jpg'
