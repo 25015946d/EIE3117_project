@@ -363,6 +363,27 @@ start_backend() {
     health_check "http://localhost:$backend_port/notices/" "$HEALTH_CHECK_TIMEOUT" "Backend"
 }
 
+# Function to configure frontend for client access
+configure_frontend() {
+    local backend_port=$1
+    local frontend_port=$2
+    
+    info "Configuring frontend for client access..."
+    
+    # Create/update frontend .env file with correct backend URL
+    local frontend_env="$FRONTEND_DIR/.env"
+    local backend_url="http://$PRIMARY_IP:$backend_port"
+    
+    info "Setting backend URL to: $backend_url"
+    
+    cat > "$frontend_env" << EOF
+VUE_APP_API_BASE_URL=/
+VUE_APP_BACKEND_URL=$backend_url
+EOF
+    
+    success "Frontend configured for client access"
+}
+
 # Function to start frontend
 start_frontend() {
     local frontend_port=$1
@@ -451,6 +472,7 @@ main() {
     
     # Start services
     start_backend "$BACKEND_PORT"
+    configure_frontend "$BACKEND_PORT" "$FRONTEND_PORT"
     start_frontend "$FRONTEND_PORT"
     
     # Test communication
@@ -466,6 +488,15 @@ main() {
     info "Local Frontend: http://localhost:$FRONTEND_PORT"
     info "Logs: Backend: $PROJECT_ROOT/backend.log, Frontend: $PROJECT_ROOT/frontend.log"
     info "Startup Log: $LOG_FILE"
+    echo
+    
+    # Client access information
+    info "=== Client Access Information ==="
+    info "For other devices on the same network:"
+    info "  • Frontend: http://$PRIMARY_IP:$FRONTEND_PORT"
+    info "  • Backend API: http://$PRIMARY_IP:$BACKEND_PORT"
+    info "  • Ensure devices can reach this IP address"
+    info "  • Check firewall settings if needed"
     echo
     
     # Display stop commands

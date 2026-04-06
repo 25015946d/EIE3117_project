@@ -7,19 +7,19 @@ module.exports = defineConfig({
     host: '0.0.0.0',
     proxy: {
       '/auth': {
-        target: 'http://localhost:8080',
+        target: process.env.VUE_APP_BACKEND_URL || 'http://localhost:8080',
         changeOrigin: true
       },
       '/notices': {
-        target: 'http://localhost:8080',
+        target: process.env.VUE_APP_BACKEND_URL || 'http://localhost:8080',
         changeOrigin: true
       },
       '/notices/image': {
-        target: 'http://localhost:8080',
+        target: process.env.VUE_APP_BACKEND_URL || 'http://localhost:8080',
         changeOrigin: true
       },
       '/api': {
-        target: 'http://localhost:8080',
+        target: process.env.VUE_APP_BACKEND_URL || 'http://localhost:8080',
         changeOrigin: true
       }
     }
