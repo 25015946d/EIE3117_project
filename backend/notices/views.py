@@ -66,24 +66,31 @@ def notice_list_create(request):
         return DRFResponse({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
 
     # Handle file upload - check both request.data and request.FILES
-    print(f"DEBUG: request.FILES keys: {list(request.FILES.keys())}")
-    print(f"DEBUG: request.data keys: {list(request.data.keys())}")
+    # Create a mutable copy of the data without files
+    from django.http import QueryDict
+    data = QueryDict(mutable=True)
+    
+    # Copy all non-file data
+    for key, value in request.data.items():
+        if key != 'image':
+            data[key] = value
+    
+    # Handle image file separately
     if 'image' in request.FILES:
-        print("DEBUG: Image found in request.FILES")
-        # Make a copy of request.data and add the file
-        data = request.data.copy()
+        # Image found in request.FILES
         data['image'] = request.FILES['image']
-        print(f"DEBUG: Added image to data, image type: {type(data['image'])}")
     elif 'image' in request.data:
-        print("DEBUG: Image found in request.data")
-        data = request.data
-    else:
-        print("DEBUG: No image found")
-        data = request.data
+        # Image is already in request.data, no need to add it
+        pass
+    
+    # Convert QueryDict to regular dict for serializer
+    final_data = data.dict()
+    if 'image' in request.FILES:
+        final_data['image'] = request.FILES['image']
     
     # Add user context to serializer
     request.current_user = user
-    serializer = NoticeListSerializer(data=data, context={'request': request})
+    serializer = NoticeListSerializer(data=final_data, context={'request': request})
     if serializer.is_valid():
         notice = serializer.save()
         # Re-serialize to get the correct image URL
