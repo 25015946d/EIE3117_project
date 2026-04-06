@@ -92,10 +92,17 @@ def notice_list_create(request):
     request.current_user = user
     serializer = NoticeListSerializer(data=final_data, context={'request': request})
     if serializer.is_valid():
-        notice = serializer.save()
-        # Re-serialize to get the correct image URL
-        response_serializer = NoticeListSerializer(notice, context={'request': request})
-        return DRFResponse(response_serializer.data, status=status.HTTP_201_CREATED)
+        try:
+            notice = serializer.save()
+            # Re-serialize to get the correct image URL
+            response_serializer = NoticeListSerializer(notice, context={'request': request})
+            return DRFResponse(response_serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            # Handle MongoEngine validation errors
+            if hasattr(e, 'errors') or 'ValidationError' in str(type(e)):
+                return DRFResponse({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return DRFResponse({'detail': 'Failed to create notice.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     else:
         return DRFResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
