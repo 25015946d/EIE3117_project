@@ -81,14 +81,18 @@ install_system_dependencies() {
                 "ubuntu"|"debian")
                     info "Installing system dependencies for Ubuntu/Debian..."
                     sudo apt-get update -qq || warning "Failed to update package list"
-                    sudo apt-get install -y python3 python3-pip python3-venv nodejs npm git curl wget build-essential || warning "Some system packages failed to install"
+                    # Install Node.js from official repository to avoid conflicts
+                    curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+                    sudo apt-get install -y nodejs python3 python3-pip python3-venv git curl wget build-essential || warning "Some system packages failed to install"
                     ;;
                 "centos"|"rhel"|"fedora")
                     info "Installing system dependencies for CentOS/RHEL/Fedora..."
+                    # Install Node.js from official repository
+                    curl -fsSL https://rpm.nodesource.com/setup_lts.x | sudo bash -
                     if command -v dnf &> /dev/null; then
-                        sudo dnf install -y python3 python3-pip nodejs npm git curl wget gcc || warning "Some system packages failed to install"
+                        sudo dnf install -y nodejs python3 python3-pip git curl wget gcc || warning "Some system packages failed to install"
                     elif command -v yum &> /dev/null; then
-                        sudo yum install -y python3 python3-pip nodejs npm git curl wget gcc || warning "Some system packages failed to install"
+                        sudo yum install -y nodejs python3 python3-pip git curl wget gcc || warning "Some system packages failed to install"
                     fi
                     ;;
                 "arch")
@@ -146,15 +150,29 @@ setup_python_env() {
     info "Upgrading pip..."
     pip install --upgrade pip || warning "Failed to upgrade pip"
     
-    # Install Python dependencies
-    info "Installing Python dependencies..."
-    if [[ -f "requirement.txt" ]]; then
-        pip install -r requirement.txt || error "Failed to install Python dependencies"
-    elif [[ -f "requirements.txt" ]]; then
-        pip install -r requirements.txt || error "Failed to install Python dependencies"
+    # Check if requirements file exists
+    local requirements_file=""
+    if [[ -f "$BACKEND_DIR/requirement.txt" ]]; then
+        requirements_file="$BACKEND_DIR/requirement.txt"
+    elif [[ -f "$BACKEND_DIR/requirements.txt" ]]; then
+        requirements_file="$BACKEND_DIR/requirements.txt"
     else
         error "No requirements file found in backend directory"
     fi
+    
+    info "Using requirements file: $requirements_file"
+    
+    # Install Python dependencies with better error handling
+    info "Installing Python dependencies..."
+    pip install -r "$requirements_file" || {
+        error "Failed to install Python dependencies from $requirements_file"
+    }
+    
+    # Verify critical packages
+    info "Verifying critical packages..."
+    python3 -c "import django" || error "Django installation failed"
+    python3 -c "import mongoengine" || error "MongoEngine installation failed"
+    python3 -c "import rest_framework" || error "Django REST Framework installation failed"
     
     success "Python environment setup completed"
 }
@@ -165,9 +183,35 @@ setup_nodejs_env() {
     
     cd "$FRONTEND_DIR"
     
+    # Verify Node.js and npm are available
+    if ! command -v node &> /dev/null; then
+        error "Node.js is not installed. Please run system dependency installation first."
+    fi
+    
+    if ! command -v npm &> /dev/null; then
+        error "npm is not installed. Please run system dependency installation first."
+    fi
+    
+    local node_version=$(node --version)
+    local npm_version=$(npm --version)
+    info "Node.js version: $node_version"
+    info "npm version: $npm_version"
+    
+    # Clear npm cache to avoid conflicts
+    info "Clearing npm cache..."
+    npm cache clean --force || warning "Failed to clear npm cache"
+    
     # Install Node.js dependencies
     info "Installing Node.js dependencies..."
-    npm install || error "Failed to install Node.js dependencies"
+    npm install || {
+        error "Failed to install Node.js dependencies"
+    }
+    
+    # Verify critical packages
+    info "Verifying Node.js packages..."
+    if [[ ! -d "node_modules/@vue/cli-service" ]]; then
+        error "Vue CLI service not installed properly"
+    fi
     
     success "Node.js environment setup completed"
 }
