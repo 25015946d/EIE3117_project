@@ -4,3 +4,5 @@ mysqlclient
 python-dotenv
 django-cors-headers
 Pillow
+mongoengine
+rest_framework_mongoengine

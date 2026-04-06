@@ -15,8 +15,41 @@ from .serializers import NoticeListSerializer, NoticeDetailSerializer, ResponseS
 def notice_list_create(request):
     if request.method == 'GET':
         notices = Notice.objects.all()
-        serializer = NoticeListSerializer(notices, many=True, context={'request': request})
-        return DRFResponse(serializer.data)
+        
+        # Manual serialization since we switched from DocumentSerializer
+        result = []
+        for notice in notices:
+            notice_data = {
+                'id': str(notice.id),
+                'owner_id': notice.owner_id,
+                'title': notice.title,
+                'type': notice.type,
+                'date': notice.date,
+                'venue': notice.venue,
+                'contact': notice.contact,
+                'description': notice.description,
+                'status': notice.status,
+                'created_at': notice.created_at,
+                'responses_count': Response.objects(notice=notice).count(),
+            }
+            
+            # Get owner info
+            if notice.owner:
+                notice_data['owner_nickname'] = notice.owner.nickname
+                notice_data['owner_email'] = notice.owner.email
+            else:
+                notice_data['owner_nickname'] = 'Unknown'
+                notice_data['owner_email'] = 'Unknown'
+            
+            # Get image URL
+            if notice.image and hasattr(notice.image, 'grid_id'):
+                notice_data['image_url'] = f'/notices/image/{notice.image.grid_id}/'
+            else:
+                notice_data['image_url'] = None
+            
+            result.append(notice_data)
+        
+        return DRFResponse(result)
 
     # POST – must be authenticated
     auth_header = request.META.get('HTTP_AUTHORIZATION', '')
@@ -118,11 +151,13 @@ def respond_to_notice(request, pk):
     # Allow all authenticated users to respond, including the notice owner
     # Remove the one-response limit - users can respond multiple times
     data = request.data.copy()
+    data['notice_id'] = str(notice.id)  # Pass the ID as string
+    data['responder_id'] = user.user_id
 
     serializer = ResponseSerializer(data=data)
     if serializer.is_valid():
-        serializer.save(notice=notice, responder_id=user.user_id)
-        return DRFResponse(serializer.data, status=status.HTTP_201_CREATED)
+        response = serializer.save()
+        return DRFResponse(ResponseSerializer(response).data, status=status.HTTP_201_CREATED)
     return DRFResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
