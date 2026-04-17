@@ -10,6 +10,21 @@ __pycache__/
 backend/media/
 backend/staticfiles/
 backend/.env
+backend/.env.*
+backend/security.log
+backend/django.log
+
+# SSL Certificates
+ssl/
+*.pem
+*.key
+*.crt
+
+# Security and Monitoring
+logs/
+*.log
+monitor-attacks.sh
+deploy-secure.sh
 
 # Virtual env
 backend/venv/
