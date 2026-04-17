@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import Notice, Response
+from mongoengine import Document, EmbeddedDocument, fields
+from security.validators import SecurityValidator
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from io import BytesIO
@@ -272,6 +274,18 @@ class NoticeDetailSerializer(serializers.Serializer):
     def get_owner_email(self, obj):
         user = obj.owner
         return user.email if user else 'Unknown'
+
+    def validate_title(self, value):
+        return SecurityValidator.validate_text_input(value, "title")
+    
+    def validate_description(self, value):
+        return SecurityValidator.sanitize_html(value)
+    
+    def validate_venue(self, value):
+        return SecurityValidator.validate_text_input(value, "venue")
+    
+    def validate_contact(self, value):
+        return SecurityValidator.validate_text_input(value, "contact")
 
     def get_image(self, obj):
         if obj.image and hasattr(obj.image, 'grid_id'):

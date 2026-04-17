@@ -5,3 +5,9 @@ python-dotenv
 django-cors-headers
 Pillow
 mongoengine
+django-ratelimit
+django-axes
+django-security
+bleach
+django-defender
+gunicorn
